@@ -28,6 +28,34 @@ class Settings(BaseSettings):
     )
     debug: bool = Field(default=False, alias="DEBUG", description="Enable debug mode")
 
+    # MongoDB Configurations
+    mongodb_url: str = Field(
+        default="mongodb://admin:adminpassword@localhost:27017",
+        alias="MONGODB_URL",
+        description="MongoDB connection string URL",
+    )
+    mongodb_database: str = Field(
+        default="contact_recognition",
+        alias="MONGODB_DATABASE",
+        description="MongoDB database name",
+    )
+
+    # Cloudinary Configurations
+    cloudinary_cloud_name: str = Field(
+        default="", alias="CLOUDINARY_CLOUD_NAME", description="Cloudinary Cloud Name"
+    )
+    cloudinary_api_key: str = Field(
+        default="", alias="CLOUDINARY_API_KEY", description="Cloudinary API Key"
+    )
+    cloudinary_api_secret: str = Field(
+        default="", alias="CLOUDINARY_API_SECRET", description="Cloudinary API Secret"
+    )
+    cloudinary_url: str = Field(
+        default="",
+        alias="CLOUDINARY_URL",
+        description="Cloudinary URL integration configuration string",
+    )
+
 
 # Instantiate settings
 settings = Settings()
