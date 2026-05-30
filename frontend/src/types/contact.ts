@@ -1,17 +1,6 @@
-export enum SocialPlatform {
-  TELEGRAM = "telegram",
-  LINKEDIN = "linkedin",
-  WHATSAPP = "whatsapp",
-  FACEBOOK = "facebook",
-  INSTAGRAM = "instagram",
-  VIBER = "viber",
-  X = "x",
-  VK = "vk",
-}
-
-export interface SocialMedia {
-  platform: SocialPlatform
-  username_or_link: string
+export interface ContactMethod {
+  type: string
+  value: string
 }
 
 export interface ContactCard {
@@ -23,13 +12,10 @@ export interface ContactCard {
   last_name?: string
   middle_name?: string
   company_name?: string
-  position?: string
+  positions: string[]
   services: string[]
   addresses: string[]
-  phone_number?: string
-  email?: string
-  website?: string
-  social_media: SocialMedia[]
+  digital_contacts: ContactMethod[]
   summary?: string
 }
 

@@ -76,13 +76,23 @@ class ContactExtractorService(IContactExtractorService):
             "Your task is to analyze the provided image, locate any contact-related details, identify core services/activities, "
             "and generate a short summary. Respond with a JSON object that matches the requested schema.\n\n"
             "Make sure to adhere to the following rules:\n"
-            "1. Extract ONLY contact information (names, company, position, phone, email, website, addresses, social media).\n"
+            "1. Extract ONLY contact information (names, company, positions, addresses, services, digital contacts, summary).\n"
             "2. Identify the core services, tags, or specialties of the person or company.\n"
             "3. Write a brief 1-2 sentence summary explaining who this person/company is and what they offer based strictly on the image context.\n"
-            "4. IGNORE any event-specific data like event dates, schedules, ticket prices, or locations/schedules that do not represent a permanent contact address.\n"
-            "5. IMPORTANT: If a field cannot be found or is not explicitly present in the image, it MUST remain null (None) or an empty list. "
+            '4. IMPORTANT: Professional roles, job titles, and positions (e.g., "Психиатр", "Software Engineer", "CEO") '
+            "MUST be placed into the `positions` array, NOT into `services`. "
+            "`services` should only contain actual services, offerings, or specialties.\n"
+            "5. IGNORE any event-specific data like event dates, schedules, ticket prices, or locations/schedules that do not represent a permanent contact address.\n"
+            "6. IMPORTANT: If a field cannot be found or is not explicitly present in the image, it MUST remain null (None) or an empty list. "
             "Do not make up, infer, or hallucinate information not present in the image.\n"
-            '6. CRITICAL FORMATTING RULE: You must return the values for the schema fields as flat types directly (e.g., first_name as a string, addresses as a list of strings, summary as a string, etc.). Do NOT wrap these values inside an object containing \'type\' and \'value\' keys. For example, output "first_name": "Alexander" instead of "first_name": {"type": "string", "value": "Alexander"}.'
+            "7. CRITICAL: All digital contact methods (phone numbers, email addresses, website URLs, social media handles/URLs) "
+            "MUST be placed into the `digital_contacts` array. Do NOT use separate fields for phone, email, website, or social_media. "
+            "Each item in `digital_contacts` must be an object with `type` and `value` keys:\n"
+            "   - type: a lowercase string describing the contact type (e.g., 'phone', 'email', 'website', 'telegram', 'linkedin', "
+            "'whatsapp', 'facebook', 'instagram', 'viber', 'x', 'vk').\n"
+            "   - value: the actual phone number, email address, URL, or handle.\n"
+            "   If the card has two phone numbers, add TWO items with type 'phone'. Do the same for any repeated contact type.\n"
+            '   Example: digital_contacts = [{"type": "phone", "value": "+1 555 000 0000"}, {"type": "email", "value": "john@example.com"}]\n'
         )
 
         system_message = SystemMessage(content=system_prompt)

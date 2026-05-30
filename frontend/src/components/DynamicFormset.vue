@@ -9,11 +9,13 @@ const props = withDefaults(
     maxLength?: number
     placeholder?: string
     minLength?: number
+    errors?: (string | undefined)[]
   }>(),
   {
     maxLength: 100,
     placeholder: "Enter a value",
     minLength: 3,
+    errors: () => [],
   },
 )
 
@@ -44,23 +46,27 @@ function updateItem(index: number, value: string) {
     <div
       v-for="(item, index) in modelValue"
       :key="index"
-      class="flex items-center gap-2"
+      class="flex flex-col gap-1"
     >
-      <Input
-        :model-value="item"
-        :placeholder="placeholder"
-        @update:model-value="updateItem(index, $event)"
-        class="min-w-0 flex-1"
-      />
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        type="button"
-        class="shrink-0"
-        @click="removeItem(index)"
-      >
-        <Trash2 class="size-4 text-destructive" />
-      </Button>
+      <div class="flex items-center gap-2">
+        <Input
+          :model-value="item"
+          :placeholder="placeholder"
+          @update:model-value="(v: unknown) => updateItem(index, String(v))"
+          class="min-w-0 flex-1"
+          :class="errors?.[index] && 'border-destructive'"
+        />
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          type="button"
+          class="shrink-0"
+          @click="removeItem(index)"
+        >
+          <Trash2 class="size-4 text-destructive" />
+        </Button>
+      </div>
+      <span v-if="errors?.[index]" class="text-destructive text-xs">{{ errors[index] }}</span>
     </div>
     <Button variant="outline" size="sm" type="button" class="w-full" @click="addItem">
       Add Item

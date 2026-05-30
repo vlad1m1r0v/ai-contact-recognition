@@ -13,10 +13,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import DialogScrollContent from "@/components/ui/dialog/DialogScrollContent.vue"
-import type { ContactCard, SocialMedia } from "@/types/contact"
-import { SocialPlatform } from "@/types/contact"
+import type { ContactCard, ContactMethod } from "@/types/contact"
 import DynamicFormset from "./DynamicFormset.vue"
-import SocialMediaFormset from "./SocialMediaFormset.vue"
+import DigitalContactFormset from "./DigitalContactFormset.vue"
 
 const props = withDefaults(
   defineProps<{
@@ -35,13 +34,10 @@ const emit = defineEmits<{
     last_name?: string
     middle_name?: string
     company_name?: string
-    position?: string
+    positions: string[]
     services: string[]
     addresses: string[]
-    phone_number?: string
-    email?: string
-    website?: string
-    social_media: SocialMedia[]
+    digital_contacts: ContactMethod[]
     summary?: string
   }): void
   (e: "update", data: { id: string } & Record<string, unknown>): void
@@ -58,16 +54,13 @@ function buildInitialValues() {
       last_name: props.card.last_name || "",
       middle_name: props.card.middle_name || "",
       company_name: props.card.company_name || "",
-      position: props.card.position || "",
+      positions: props.card.positions?.length ? props.card.positions : [""],
       summary: props.card.summary || "",
-      phone_number: props.card.phone_number || "",
-      email: props.card.email || "",
-      website: props.card.website || "",
-      services: props.card.services.length ? props.card.services : [""],
-      addresses: props.card.addresses.length ? props.card.addresses : [""],
-      social_media: props.card.social_media.length
-        ? props.card.social_media
-        : [{ platform: SocialPlatform.TELEGRAM, username_or_link: "" }],
+      services: props.card.services?.length ? props.card.services : [""],
+      addresses: props.card.addresses?.length ? props.card.addresses : [""],
+      digital_contacts: props.card.digital_contacts?.length
+        ? props.card.digital_contacts
+        : [{ type: "phone", value: "" }],
     }
   }
   return {
@@ -75,28 +68,69 @@ function buildInitialValues() {
     last_name: "",
     middle_name: "",
     company_name: "",
-    position: "",
+    positions: [""],
     summary: "",
-    phone_number: "",
-    email: "",
-    website: "",
     services: [""],
     addresses: [""],
-    social_media: [{ platform: SocialPlatform.TELEGRAM, username_or_link: "" } as SocialMedia],
+    digital_contacts: [{ type: "phone", value: "" } as ContactMethod],
   }
 }
 
 const isEditing = computed(() => !!props.card)
 
-const platformUrlPatterns: Record<string, RegExp> = {
-  [SocialPlatform.TELEGRAM]: /^(https?:\/\/)?(t\.me\/|telegram\.me\/)|@\w+/i,
-  [SocialPlatform.LINKEDIN]: /^(https?:\/\/)?(www\.)?linkedin\.com\/(in|company)\/\w+/i,
-  [SocialPlatform.WHATSAPP]: /^(https?:\/\/)?(wa\.me\/|api\.whatsapp\.com\/send\/?)/i,
-  [SocialPlatform.FACEBOOK]: /^(https?:\/\/)?(www\.)?facebook\.com\/\w+/i,
-  [SocialPlatform.INSTAGRAM]: /^(https?:\/\/)?(www\.)?instagram\.com\/\w+/i,
-  [SocialPlatform.VIBER]: /^\+?[\d\s]+$/,
-  [SocialPlatform.X]: /^(https?:\/\/)?(www\.)?(x\.com|twitter\.com)\/\w+/i,
-  [SocialPlatform.VK]: /^(https?:\/\/)?(www\.)?vk\.com\/\w+/i,
+function stringItemError(v: string | undefined, min: number, max: number): string | undefined {
+  if (!v || !v.trim()) return undefined
+  const trimmed = v.trim()
+  if (trimmed.length < min || trimmed.length > max) return `Must be ${min}-${max} characters if filled`
+  return undefined
+}
+
+function digitalContactValueError(value: string | undefined, type: string): string | undefined {
+  if (!value || !value.trim()) return undefined
+  const v = value.trim()
+
+  switch (type) {
+    case "email":
+      return yup.string().email().isValidSync(v) ? undefined : "Invalid email format"
+    case "website":
+      return yup.string().url().isValidSync(v) ? undefined : "Must be a valid URL"
+    case "phone":
+      return /^[\d\s+()-]+$/.test(v) ? undefined : "Only digits, spaces, +, -, and () allowed"
+    case "whatsapp":
+      return /^(https?:\/\/)?(wa\.me|whatsapp\.com)\/\w+\/?$|^[\d\s+()-]+$/.test(v)
+        ? undefined
+        : "Must be a WhatsApp URL or phone number"
+    case "viber":
+      return /^(https?:\/\/)?(viber\.me)\/[\w.-]+\/?$|^[\d\s+()-]+$/.test(v)
+        ? undefined
+        : "Must be a Viber URL or phone number"
+    case "telegram":
+      return /^(https?:\/\/)?(t\.me|telegram\.me)\/\w+\/?$|^@?\w{3,32}$/.test(v)
+        ? undefined
+        : "Must be a Telegram URL or @username"
+    case "linkedin":
+      return /^(https?:\/\/)?(www\.)?linkedin\.com\/in\/[\w-]+\/?$|^@?[\w-]{3,100}$/.test(v)
+        ? undefined
+        : "Must be a LinkedIn profile URL or @username"
+    case "facebook":
+      return /^(https?:\/\/)?(www\.)?(facebook\.com|fb\.com)\/[\w.]+\/?$|^@?[\w.]{3,}$/.test(v)
+        ? undefined
+        : "Must be a Facebook profile URL or @username"
+    case "instagram":
+      return /^(https?:\/\/)?(www\.)?instagram\.com\/[\w.]+\/?$|^@?[\w.]{3,}$/.test(v)
+        ? undefined
+        : "Must be an Instagram profile URL or @username"
+    case "x":
+      return /^(https?:\/\/)?(www\.)?x\.com\/\w+\/?$|^@?\w+$/.test(v)
+        ? undefined
+        : "Must be an X profile URL or @username"
+    case "vk":
+      return /^(https?:\/\/)?(vk\.com|vk\.ru)\/[\w.-]+\/?$|^@?[\w.-]+$/.test(v)
+        ? undefined
+        : "Must be a VK profile URL or @username"
+    default:
+      return undefined
+  }
 }
 
 const formSchema = yup.object({
@@ -116,49 +150,26 @@ const formSchema = yup.object({
     .string()
     .test("company_name", "Minimum 2 characters", (v) => !v || !v.trim() || v.trim().length >= 2)
     .test("company_name", "Maximum 50 characters", (v) => !v || !v.trim() || v.trim().length <= 50),
-  position: yup
-    .string()
-    .test("position", "Minimum 2 characters", (v) => !v || !v.trim() || v.trim().length >= 2)
-    .test("position", "Maximum 50 characters", (v) => !v || !v.trim() || v.trim().length <= 50),
+  positions: yup.array().of(
+    yup.string().test("pos", "Must be 3-100 characters if filled", (v) => !stringItemError(v, 3, 100)),
+  ),
   summary: yup
     .string()
+    .test("summary", "Minimum 10 characters", (v) => !v || !v.trim() || v.trim().length >= 10)
     .test("summary", "Maximum 250 characters", (v) => !v || !v.trim() || v.trim().length <= 250),
-  phone_number: yup
-    .string()
-    .test("phone", "Only digits, spaces, and + allowed", (v) => !v || !v.trim() || /^[\d\s+]+$/.test(v.trim())),
-  email: yup
-    .string()
-    .test("email", "Invalid email format", (v) => {
-      if (!v || !v.trim()) return true
-      return yup.string().email().isValidSync(v.trim())
-    }),
-  website: yup
-    .string()
-    .test("website", "Invalid URL format", (v) => {
-      if (!v || !v.trim()) return true
-      return yup.string().url().isValidSync(v.trim())
-    }),
   services: yup.array().of(
-    yup
-      .string()
-      .test("svc", "Must be 3-100 characters if filled", (v) => !v || !v.trim() || (v.trim().length >= 3 && v.trim().length <= 100)),
+    yup.string().test("svc", "Must be 3-100 characters if filled", (v) => !stringItemError(v, 3, 100)),
   ),
   addresses: yup.array().of(
-    yup
-      .string()
-      .test("addr", "Must be 3-100 characters if filled", (v) => !v || !v.trim() || (v.trim().length >= 3 && v.trim().length <= 100)),
+    yup.string().test("addr", "Must be 3-100 characters if filled", (v) => !stringItemError(v, 3, 100)),
   ),
-  social_media: yup.array().of(
+  digital_contacts: yup.array().of(
     yup.object({
-      platform: yup.string().required(),
-      username_or_link: yup
-        .string()
-        .test("platform-url", "Invalid URL or handle for the selected platform", function (value) {
-          if (!value || !value.trim()) return true
-          const socialItem = this.parent as { platform: string; username_or_link: string }
-          const pattern = platformUrlPatterns[socialItem.platform]
-          return pattern ? pattern.test(value) : true
-        }),
+      type: yup.string().required(),
+      value: yup.string().test("dc-value", "Invalid value for the selected contact type", function (value) {
+        if (!value || !value.trim()) return true
+        return !digitalContactValueError(value, this.parent.type)
+      }),
     }),
   ),
 })
@@ -172,11 +183,20 @@ const { value: firstName, errorMessage: firstNameErr } = useField<string>("first
 const { value: lastName, errorMessage: lastNameErr } = useField<string>("last_name")
 const { value: middleName, errorMessage: middleNameErr } = useField<string>("middle_name")
 const { value: companyName, errorMessage: companyNameErr } = useField<string>("company_name")
-const { value: position, errorMessage: positionErr } = useField<string>("position")
 const { value: summary, errorMessage: summaryErr } = useField<string>("summary")
-const { value: phoneNumber, errorMessage: phoneNumberErr } = useField<string>("phone_number")
-const { value: email, errorMessage: emailErr } = useField<string>("email")
-const { value: website, errorMessage: websiteErr } = useField<string>("website")
+
+const positionsErrors = computed(() =>
+  ((values.positions as string[]) || []).map((v) => stringItemError(v, 3, 100)),
+)
+const servicesErrors = computed(() =>
+  ((values.services as string[]) || []).map((v) => stringItemError(v, 3, 100)),
+)
+const addressesErrors = computed(() =>
+  ((values.addresses as string[]) || []).map((v) => stringItemError(v, 3, 100)),
+)
+const digitalContactsErrors = computed(() =>
+  ((values.digital_contacts as ContactMethod[]) || []).map((d) => digitalContactValueError(d.value, d.type)),
+)
 
 watch(
   () => props.open,
@@ -206,9 +226,9 @@ function onFileSelected(event: Event) {
         ...mockData,
         services: mockData.services?.length ? mockData.services : [""],
         addresses: mockData.addresses?.length ? mockData.addresses : [""],
-        social_media: mockData.social_media?.length
-          ? mockData.social_media
-          : [{ platform: SocialPlatform.TELEGRAM, username_or_link: "" }],
+        digital_contacts: mockData.digital_contacts?.length
+          ? mockData.digital_contacts
+          : [{ type: "phone", value: "" }],
       },
     })
     isParsing.value = false
@@ -224,14 +244,14 @@ function useContactsInternal() {
       last_name: "Johnson",
       company_name: "Example Corp",
       position: "Software Engineer",
-      phone_number: "+1 555 000 0000",
-      email: "alex@example.com",
-      website: "https://example.com",
       services: ["Web Development", "API Design"],
       addresses: ["742 Evergreen Terrace, Springfield"],
-      social_media: [
-        { platform: SocialPlatform.LINKEDIN, username_or_link: "https://linkedin.com/in/alexjohnson" },
-      ] as SocialMedia[],
+      digital_contacts: [
+        { type: "phone", value: "+1 555 000 0000" },
+        { type: "email", value: "alex@example.com" },
+        { type: "website", value: "https://example.com" },
+        { type: "linkedin", value: "https://linkedin.com/in/alexjohnson" },
+      ] as ContactMethod[],
       summary: "Alex Johnson is a Software Engineer at Example Corp with expertise in web development and API design.",
     }
   }
@@ -248,11 +268,9 @@ const onSubmit = handleSubmit((formValues) => {
 
   const imageUrl = imagePreview.value || "https://placehold.co/600x400?text=Card"
 
-  const services = formValues.services.filter((s: string) => s.trim())
-  const addresses = formValues.addresses.filter((a: string) => a.trim())
-  const socialMedia = formValues.social_media.filter(
-    (s: SocialMedia) => s.username_or_link.trim(),
-  )
+  const services = (formValues.services ?? []).filter((s): s is string => !!s?.trim())
+  const addresses = (formValues.addresses ?? []).filter((a): a is string => !!a?.trim())
+  const digitalContacts = (formValues.digital_contacts ?? []).filter((d): d is ContactMethod => !!d.value?.trim())
 
   const data = {
     display_name: displayName,
@@ -261,13 +279,10 @@ const onSubmit = handleSubmit((formValues) => {
     last_name: formValues.last_name?.trim() || undefined,
     middle_name: formValues.middle_name?.trim() || undefined,
     company_name: formValues.company_name?.trim() || undefined,
-    position: formValues.position?.trim() || undefined,
+    positions: (formValues.positions ?? []).filter((p): p is string => !!p?.trim()),
     services,
     addresses,
-    phone_number: formValues.phone_number?.trim() || undefined,
-    email: formValues.email?.trim() || undefined,
-    website: formValues.website?.trim() || undefined,
-    social_media: socialMedia,
+    digital_contacts: digitalContacts,
     summary: formValues.summary?.trim() || undefined,
   }
 
@@ -338,7 +353,7 @@ function triggerFileInput() {
             <label class="text-muted-foreground text-xs font-medium">Middle Name</label>
             <Input
               v-model="middleName"
-              placeholder="M"
+              placeholder="James"
               :class="middleNameErr && 'border-destructive'"
             />
             <span v-if="middleNameErr" class="text-destructive text-xs">{{ middleNameErr }}</span>
@@ -355,13 +370,13 @@ function triggerFileInput() {
           </div>
 
           <div class="flex flex-col gap-1">
-            <label class="text-muted-foreground text-xs font-medium">Position</label>
-            <Input
-              v-model="position"
-              placeholder="CEO"
-              :class="positionErr && 'border-destructive'"
+            <label class="text-muted-foreground text-xs font-medium">Positions</label>
+            <DynamicFormset
+              :model-value="(values.positions as string[]) || ['']"
+              @update:model-value="(v: string[]) => setFieldValue('positions', v)"
+              placeholder="Enter a position"
+              :errors="positionsErrors"
             />
-            <span v-if="positionErr" class="text-destructive text-xs">{{ positionErr }}</span>
           </div>
 
           <div class="flex flex-col gap-1">
@@ -371,39 +386,8 @@ function triggerFileInput() {
               placeholder="1-2 sentence brief description..."
               class="border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 flex h-20 w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px]"
               :class="summaryErr && 'border-destructive'"
-              maxlength="250"
             />
             <span v-if="summaryErr" class="text-destructive text-xs">{{ summaryErr }}</span>
-          </div>
-
-          <div class="flex flex-col gap-1">
-            <label class="text-muted-foreground text-xs font-medium">Phone Number</label>
-            <Input
-              v-model="phoneNumber"
-              placeholder="+1 555 123 4567"
-              :class="phoneNumberErr && 'border-destructive'"
-            />
-            <span v-if="phoneNumberErr" class="text-destructive text-xs">{{ phoneNumberErr }}</span>
-          </div>
-
-          <div class="flex flex-col gap-1">
-            <label class="text-muted-foreground text-xs font-medium">Email</label>
-            <Input
-              v-model="email"
-              placeholder="john@acme.com"
-              :class="emailErr && 'border-destructive'"
-            />
-            <span v-if="emailErr" class="text-destructive text-xs">{{ emailErr }}</span>
-          </div>
-
-          <div class="flex flex-col gap-1">
-            <label class="text-muted-foreground text-xs font-medium">Website</label>
-            <Input
-              v-model="website"
-              placeholder="https://acme.com"
-              :class="websiteErr && 'border-destructive'"
-            />
-            <span v-if="websiteErr" class="text-destructive text-xs">{{ websiteErr }}</span>
           </div>
 
           <div class="flex flex-col gap-1">
@@ -412,6 +396,7 @@ function triggerFileInput() {
               :model-value="(values.services as string[]) || ['']"
               @update:model-value="(v: string[]) => setFieldValue('services', v)"
               placeholder="Enter a service"
+              :errors="servicesErrors"
             />
           </div>
 
@@ -421,14 +406,16 @@ function triggerFileInput() {
               :model-value="(values.addresses as string[]) || ['']"
               @update:model-value="(v: string[]) => setFieldValue('addresses', v)"
               placeholder="Enter an address"
+              :errors="addressesErrors"
             />
           </div>
 
           <div class="flex flex-col gap-1">
-            <label class="text-muted-foreground text-xs font-medium">Social Media</label>
-            <SocialMediaFormset
-              :model-value="(values.social_media as SocialMedia[]) || [{ platform: SocialPlatform.TELEGRAM, username_or_link: '' }]"
-              @update:model-value="(v: SocialMedia[]) => setFieldValue('social_media', v)"
+            <label class="text-muted-foreground text-xs font-medium">Digital Contacts</label>
+            <DigitalContactFormset
+              :model-value="(values.digital_contacts as ContactMethod[]) || [{ type: 'phone', value: '' }]"
+              @update:model-value="(v: ContactMethod[]) => setFieldValue('digital_contacts', v)"
+              :errors="digitalContactsErrors"
             />
           </div>
         </div>

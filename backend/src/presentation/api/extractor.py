@@ -116,13 +116,10 @@ async def create_contact_card(
         last_name=body.last_name,
         middle_name=body.middle_name,
         company_name=body.company_name,
-        position=body.position,
+        positions=body.positions,
         services=body.services,
         addresses=body.addresses,
-        phone_number=body.phone_number,
-        email=body.email,
-        website=body.website,
-        social_media=body.social_media,
+        digital_contacts=body.digital_contacts,
         summary=body.summary,
     )
 
@@ -193,4 +190,79 @@ async def get_card_details(
     result = await card_usecase_service.get_card_details(card_id=card_id)
 
     logger.finished(f"API request completed: Loaded card details for ID {card_id}")
+    return result
+
+
+@router.delete(
+    path="/{card_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses=generate_examples(CardNotFoundException, DatabaseConnectionException),
+    summary="Delete a Contact Card",
+    description="Permanently delete a contact card by its ID.",
+)
+@inject
+async def delete_contact_card(
+    card_id: str,
+    card_usecase_service: FromDishka[ICardUsecaseService],
+) -> None:
+    """
+    Delete a contact card from the database by its MongoDB ID.
+    """
+    logger.executing(f"API request received: Delete contact card with ID {card_id}")
+
+    await card_usecase_service.delete_card(card_id=card_id)
+
+    logger.finished(f"API request completed: Deleted contact card with ID {card_id}")
+
+
+@router.patch(
+    path="/{card_id}",
+    response_model=ContactExtractionSchema,
+    status_code=status.HTTP_200_OK,
+    responses=generate_examples(
+        CardNotFoundException, InvalidImageException, DatabaseConnectionException
+    ),
+    response_model_exclude_none=True,
+    summary="Update a Contact Card",
+    description=(
+        "Update an existing contact card with new data and optionally a new base64-encoded image. "
+        "If image_base64 is provided, the image is re-uploaded to Cloudinary."
+    ),
+)
+@inject
+async def update_contact_card(
+    card_id: str,
+    card_usecase_service: FromDishka[ICardUsecaseService],
+    body: CreateContactRequest = Body(
+        ..., description="Updated contact data with base64-encoded image"
+    ),
+) -> ContactExtractionSchema:
+    """
+    Update (replace) a contact card in the database by its MongoDB ID.
+    """
+    logger.executing(f"API request received: Update contact card with ID {card_id}")
+
+    match = re.match(r"data:(?P<mime>[^;]+);base64,(?P<data>.+)", body.image_base64)
+    if not match:
+        raise InvalidImageException(
+            "Invalid image data URI format. Expected: data:{mime};base64,{data}"
+        )
+
+    extraction = ContactExtractionSchema(
+        first_name=body.first_name,
+        last_name=body.last_name,
+        middle_name=body.middle_name,
+        company_name=body.company_name,
+        positions=body.positions,
+        services=body.services,
+        addresses=body.addresses,
+        digital_contacts=body.digital_contacts,
+        summary=body.summary,
+    )
+
+    result = await card_usecase_service.update_card(
+        card_id=card_id, extraction=extraction
+    )
+
+    logger.finished(f"API request completed: Updated contact card with ID {card_id}")
     return result

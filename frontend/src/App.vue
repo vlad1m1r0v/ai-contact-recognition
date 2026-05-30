@@ -8,7 +8,7 @@ import AppPagination from "@/components/AppPagination.vue"
 import ContactDetailModal from "@/components/ContactDetailModal.vue"
 import ContactFormModal from "@/components/ContactFormModal.vue"
 import { useContacts } from "@/composables/useContacts"
-import type { ContactCard, SocialMedia } from "@/types/contact"
+import type { ContactCard, ContactMethod } from "@/types/contact"
 
 const {
   searchQuery,
@@ -58,10 +58,7 @@ async function handleSave(data: {
   position?: string
   services: string[]
   addresses: string[]
-  phone_number?: string
-  email?: string
-  website?: string
-  social_media: SocialMedia[]
+  digital_contacts: ContactMethod[]
   summary?: string
 }) {
   await createCard(data)

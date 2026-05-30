@@ -64,19 +64,13 @@ function formatTime(iso: string): string {
             <span>{{ [card.first_name, card.middle_name, card.last_name].filter(Boolean).join(" ") }}</span>
           </div>
 
-          <div v-if="card.phone_number" class="flex flex-col">
-            <span class="text-muted-foreground text-xs font-medium uppercase">Phone</span>
-            <span>{{ card.phone_number }}</span>
-          </div>
-
-          <div v-if="card.email" class="flex flex-col">
-            <span class="text-muted-foreground text-xs font-medium uppercase">Email</span>
-            <span>{{ card.email }}</span>
-          </div>
-
-          <div v-if="card.website" class="flex flex-col">
-            <span class="text-muted-foreground text-xs font-medium uppercase">Website</span>
-            <span>{{ card.website }}</span>
+          <div v-if="card.digital_contacts.length" class="flex flex-col">
+            <span class="text-muted-foreground text-xs font-medium uppercase">Digital Contacts</span>
+            <ul class="list-inside list-disc">
+              <li v-for="(dc, i) in card.digital_contacts" :key="i">
+                {{ dc.type }}: {{ dc.value }}
+              </li>
+            </ul>
           </div>
 
           <div v-if="card.services.length" class="flex flex-col">
@@ -90,15 +84,6 @@ function formatTime(iso: string): string {
             <span class="text-muted-foreground text-xs font-medium uppercase">Addresses</span>
             <ul class="list-inside list-disc">
               <li v-for="a in card.addresses" :key="a">{{ a }}</li>
-            </ul>
-          </div>
-
-          <div v-if="card.social_media.length" class="flex flex-col">
-            <span class="text-muted-foreground text-xs font-medium uppercase">Social Media</span>
-            <ul class="list-inside list-disc">
-              <li v-for="s in card.social_media" :key="s.platform + s.username_or_link">
-                {{ s.platform }}: {{ s.username_or_link }}
-              </li>
             </ul>
           </div>
 

@@ -1,31 +1,17 @@
-from enum import Enum
 from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel, Field
 
 
-class SocialPlatform(str, Enum):
-    """Enum representing supported social media platforms."""
+class ContactMethod(BaseModel):
+    """Schema representing a single digital contact method."""
 
-    TELEGRAM = "telegram"
-    LINKEDIN = "linkedin"
-    WHATSAPP = "whatsapp"
-    FACEBOOK = "facebook"
-    INSTAGRAM = "instagram"
-    VIBER = "viber"
-    X = "x"
-    VK = "vk"
-
-
-class SocialMedia(BaseModel):
-    """Schema representing a social media handle or link."""
-
-    platform: SocialPlatform = Field(
+    type: str = Field(
         ...,
-        description="The social media platform name, e.g., telegram, linkedin, whatsapp, facebook, instagram, viber, x",
+        description="Contact type, e.g., phone, email, website, telegram, linkedin, etc. (always lowercase)",
     )
-    username_or_link: str = Field(
-        ..., description="The username, handle, or full URL to the social media profile"
+    value: str = Field(
+        ..., description="The actual phone number, email address, or URL string"
     )
 
 
@@ -55,9 +41,9 @@ class ContactExtractionSchema(BaseModel):
     company_name: Optional[str] = Field(
         default=None, description="Name of the company or organization, if available"
     )
-    position: Optional[str] = Field(
-        default=None,
-        description="Job title or professional position of the person, if available",
+    positions: List[str] = Field(
+        default_factory=list,
+        description="List of professional positions, job titles, or roles held by the person",
     )
     services: List[str] = Field(
         default_factory=list,
@@ -67,16 +53,9 @@ class ContactExtractionSchema(BaseModel):
         default_factory=list,
         description="Physical addresses, locations, or branches mentioned on the card/image",
     )
-    phone_number: Optional[str] = Field(
-        default=None,
-        description="Contact phone number including any country code or formatting",
-    )
-    email: Optional[str] = Field(
-        default=None, description="Email address of the contact person or company"
-    )
-    website: Optional[str] = Field(default=None, description="Official website URL")
-    social_media: List[SocialMedia] = Field(
-        default_factory=list, description="List of social media channels extracted"
+    digital_contacts: List[ContactMethod] = Field(
+        default_factory=list,
+        description="Unified list of all digital contact methods (phone, email, website, social media, etc.)",
     )
     summary: Optional[str] = Field(
         default=None,
@@ -114,9 +93,9 @@ class CreateContactRequest(BaseModel):
     company_name: Optional[str] = Field(
         default=None, description="Name of the company or organization, if available"
     )
-    position: Optional[str] = Field(
-        default=None,
-        description="Job title or professional position of the person, if available",
+    positions: List[str] = Field(
+        default_factory=list,
+        description="List of professional positions, job titles, or roles held by the person",
     )
     services: List[str] = Field(
         default_factory=list,
@@ -126,16 +105,9 @@ class CreateContactRequest(BaseModel):
         default_factory=list,
         description="Physical addresses, locations, or branches mentioned on the card/image",
     )
-    phone_number: Optional[str] = Field(
-        default=None,
-        description="Contact phone number including any country code or formatting",
-    )
-    email: Optional[str] = Field(
-        default=None, description="Email address of the contact person or company"
-    )
-    website: Optional[str] = Field(default=None, description="Official website URL")
-    social_media: List[SocialMedia] = Field(
-        default_factory=list, description="List of social media channels"
+    digital_contacts: List[ContactMethod] = Field(
+        default_factory=list,
+        description="Unified list of all digital contact methods",
     )
     summary: Optional[str] = Field(
         default=None,

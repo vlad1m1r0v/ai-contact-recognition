@@ -142,3 +142,39 @@ class CardRepository(ICardRepository):
         except Exception as e:
             logger.finished(f"Database query failed: {e}", level=logger.logger.level)
             raise DatabaseConnectionException(f"Failed to load contact card: {e}")
+
+    async def delete_card(self, card_id: str) -> None:
+        logger.executing(f"Deleting card document with ID: {card_id}")
+        try:
+            oid = ObjectId(card_id)
+            result = await self.collection.delete_one({"_id": oid})
+            if result.deleted_count == 0:
+                logger.finished(f"Card not found for deletion: {card_id}")
+        except Exception as e:
+            logger.finished(
+                f"Database delete operation failed: {e}", level=logger.logger.level
+            )
+            raise DatabaseConnectionException(f"Failed to delete contact card: {e}")
+
+    async def update_card(
+        self, card_id: str, extraction: ContactExtractionSchema
+    ) -> Optional[ContactExtractionSchema]:
+        logger.executing(f"Updating card document with ID: {card_id}")
+        try:
+            oid = ObjectId(card_id)
+            data = extraction.model_dump(exclude={"id"})
+            result = await self.collection.replace_one({"_id": oid}, data)
+            if result.matched_count == 0:
+                logger.finished(f"Card not found for update: {card_id}")
+                return None
+            logger.finished(f"Card document updated successfully for ID: {card_id}")
+            doc = await self.collection.find_one({"_id": oid})
+            if doc:
+                doc["id"] = str(doc.pop("_id"))
+                return ContactExtractionSchema(**doc)
+            return None
+        except Exception as e:
+            logger.finished(
+                f"Database update operation failed: {e}", level=logger.logger.level
+            )
+            raise DatabaseConnectionException(f"Failed to update contact card: {e}")

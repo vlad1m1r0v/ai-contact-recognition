@@ -66,6 +66,23 @@ class ICardRepository(abc.ABC):
         """
         pass
 
+    @abc.abstractmethod
+    async def delete_card(self, card_id: str) -> None:
+        """
+        Delete a card from the database by its ID.
+        """
+        pass
+
+    @abc.abstractmethod
+    async def update_card(
+        self, card_id: str, extraction: ContactExtractionSchema
+    ) -> Optional[ContactExtractionSchema]:
+        """
+        Replace the entire card document in the database.
+        Returns the updated schema, or None if not found.
+        """
+        pass
+
 
 class ICardUsecaseService(abc.ABC):
     """
@@ -104,5 +121,21 @@ class ICardUsecaseService(abc.ABC):
     async def get_card_details(self, card_id: str) -> ContactExtractionSchema:
         """
         Load detailed scanned card metrics.
+        """
+        pass
+
+    @abc.abstractmethod
+    async def delete_card(self, card_id: str) -> None:
+        """
+        Delete a card by its ID.
+        """
+        pass
+
+    @abc.abstractmethod
+    async def update_card(
+        self, card_id: str, extraction: ContactExtractionSchema
+    ) -> ContactExtractionSchema:
+        """
+        Update (replace) a card by its ID with new data.
         """
         pass

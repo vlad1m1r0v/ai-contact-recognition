@@ -107,3 +107,25 @@ class CardUsecaseService(ICardUsecaseService):
             f"Orchestrated contact details loaded successfully for ID: {card_id}"
         )
         return card
+
+    async def delete_card(self, card_id: str) -> None:
+        logger.executing(f"Orchestrating card deletion for ID: {card_id}")
+        card = await self.repository.get_card_by_id(card_id)
+        if not card:
+            raise CardNotFoundException(
+                f"Contact card cannot be found for deletion: {card_id}"
+            )
+        await self.repository.delete_card(card_id)
+        logger.finished(f"Card deletion orchestrated successfully for ID: {card_id}")
+
+    async def update_card(
+        self, card_id: str, extraction: ContactExtractionSchema
+    ) -> ContactExtractionSchema:
+        logger.executing(f"Orchestrating card update for ID: {card_id}")
+        updated = await self.repository.update_card(card_id, extraction)
+        if not updated:
+            raise CardNotFoundException(
+                f"Contact card cannot be found for update: {card_id}"
+            )
+        logger.finished(f"Card update orchestrated successfully for ID: {card_id}")
+        return updated
