@@ -1,4 +1,6 @@
 import { ref, computed, watch } from "vue"
+import { watchDebounced } from "@vueuse/core"
+import { toast } from "vue-sonner"
 import {
   getContacts as apiGetContacts,
   createContact as apiCreateContact,
@@ -15,6 +17,7 @@ export function useContacts() {
   const contacts = ref<CardListItem[]>([])
   const totalItems = ref(0)
   const isLoading = ref(false)
+  const isSaving = ref(false)
   const error = ref<string | null>(null)
 
   const totalPages = computed(() =>
@@ -41,12 +44,19 @@ export function useContacts() {
     }
   }
 
-  watch([searchQuery, currentPage], fetchContacts, { immediate: true })
+  watchDebounced(searchQuery, fetchContacts, { debounce: 300, immediate: true })
+  watch(currentPage, fetchContacts)
 
   async function deleteCard(id: string): Promise<void> {
-    await apiDeleteContact(id)
-    currentPage.value = 1
-    await fetchContacts()
+    try {
+      await apiDeleteContact(id)
+      toast.success("Contact deleted")
+      currentPage.value = 1
+      await fetchContacts()
+    } catch (e) {
+      toast.error((e as Error).message)
+      throw e
+    }
   }
 
   async function createCard(data: {
@@ -61,10 +71,19 @@ export function useContacts() {
     digital_contacts?: ContactMethod[]
     summary?: string
   }): Promise<ContactCard> {
-    const card = await apiCreateContact(data)
-    currentPage.value = 1
-    await fetchContacts()
-    return card
+    isSaving.value = true
+    try {
+      const card = await apiCreateContact(data)
+      toast.success("Contact created")
+      currentPage.value = 1
+      await fetchContacts()
+      return card
+    } catch (e) {
+      toast.error((e as Error).message)
+      throw e
+    } finally {
+      isSaving.value = false
+    }
   }
 
   async function updateCard(
@@ -82,9 +101,18 @@ export function useContacts() {
       summary?: string
     }>,
   ): Promise<ContactCard> {
-    const card = await apiUpdateContact(id, data)
-    await fetchContacts()
-    return card
+    isSaving.value = true
+    try {
+      const card = await apiUpdateContact(id, data)
+      toast.success("Contact updated")
+      await fetchContacts()
+      return card
+    } catch (e) {
+      toast.error((e as Error).message)
+      throw e
+    } finally {
+      isSaving.value = false
+    }
   }
 
   return {
@@ -94,6 +122,7 @@ export function useContacts() {
     totalItems,
     totalPages,
     isLoading,
+    isSaving,
     error,
     pageSize: PAGE_SIZE,
     deleteCard,

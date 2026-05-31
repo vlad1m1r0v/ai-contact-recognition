@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, watch } from "vue"
-import { useForm } from "vee-validate"
-import { toTypedSchema } from "@vee-validate/yup"
+import { ref, watch } from "vue"
+import { toast } from "vue-sonner"
 import { ImagePlus, Loader2 } from "@lucide/vue"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,13 +11,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import DialogScrollContent from "@/components/ui/dialog/DialogScrollContent.vue"
-import {
-  formSchema,
-  getPositionErrors,
-  getServiceErrors,
-  getAddressErrors,
-  getDigitalContactErrors,
-} from "@/lib/validation"
+import { formSchema } from "@/lib/validation"
+import { useForm } from "@/lib/useForm"
 import { extractContact } from "@/lib/api"
 import type { ContactCard, ContactMethod } from "@/types/contact"
 import DynamicFormset from "./DynamicFormset.vue"
@@ -87,32 +81,28 @@ function buildInitialValues() {
   }
 }
 
-const { defineField, handleSubmit, setFieldValue, resetForm, values, errors, meta } =
-  useForm({
-    validationSchema: toTypedSchema(formSchema),
-    initialValues: buildInitialValues(),
-  })
+const {
+  defineField,
+  defineArray,
+  handleSubmit,
+  resetForm,
+  errors,
+  meta,
+} = useForm({
+  validationSchema: formSchema,
+  initialValues: buildInitialValues(),
+})
 
-const [firstName, firstNameProps] = defineField("first_name")
-const [lastName, lastNameProps] = defineField("last_name")
-const [middleName, middleNameProps] = defineField("middle_name")
-const [companyName, companyNameProps] = defineField("company_name")
-const [summary, summaryProps] = defineField("summary")
+const firstName = defineField("first_name")
+const lastName = defineField("last_name")
+const middleName = defineField("middle_name")
+const companyName = defineField("company_name")
+const summary = defineField("summary")
 
-const formValid = computed(() => formSchema.isValidSync(values))
-
-const positionsErrors = computed(() =>
-  getPositionErrors((values.positions as string[]) || []),
-)
-const servicesErrors = computed(() =>
-  getServiceErrors((values.services as string[]) || []),
-)
-const addressesErrors = computed(() =>
-  getAddressErrors((values.addresses as string[]) || []),
-)
-const digitalContactsErrors = computed(() =>
-  getDigitalContactErrors((values.digital_contacts as ContactMethod[]) || []),
-)
+const positions = defineArray("positions")
+const services = defineArray("services")
+const addresses = defineArray("addresses")
+const digitalContacts = defineArray("digital_contacts")
 
 watch(
   () => props.open,
@@ -162,8 +152,8 @@ async function onFileSelected(event: Event) {
             : [{ type: "phone", value: "" }],
         },
       })
-    } catch {
-      // extraction failed – leave fields empty
+    } catch (e) {
+      toast.error((e as Error).message)
     } finally {
       isParsing.value = false
     }
@@ -257,7 +247,6 @@ function triggerFileInput() {
             >
             <Input
               v-model="firstName"
-              v-bind="firstNameProps"
               placeholder="John"
             />
             <span
@@ -273,7 +262,6 @@ function triggerFileInput() {
             >
             <Input
               v-model="lastName"
-              v-bind="lastNameProps"
               placeholder="Doe"
             />
             <span
@@ -289,7 +277,6 @@ function triggerFileInput() {
             >
             <Input
               v-model="middleName"
-              v-bind="middleNameProps"
               placeholder="James"
             />
             <span
@@ -305,7 +292,6 @@ function triggerFileInput() {
             >
             <Input
               v-model="companyName"
-              v-bind="companyNameProps"
               placeholder="Acme Corp"
             />
             <span
@@ -320,12 +306,10 @@ function triggerFileInput() {
               >Positions</label
             >
             <DynamicFormset
-              :model-value="(values.positions as string[]) || ['']"
-              @update:model-value="
-                (v: string[]) => setFieldValue('positions', v)
-              "
+              :model-value="positions.items.value"
+              @update:model-value="positions.setItems"
               placeholder="Enter a position"
-              :errors="positionsErrors"
+              :errors="positions.errors.value"
             />
           </div>
 
@@ -335,7 +319,6 @@ function triggerFileInput() {
             >
             <textarea
               v-model="summary"
-              v-bind="summaryProps"
               placeholder="1-2 sentence brief description..."
               class="border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 flex h-20 w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px]"
             />
@@ -351,12 +334,10 @@ function triggerFileInput() {
               >Services</label
             >
             <DynamicFormset
-              :model-value="(values.services as string[]) || ['']"
-              @update:model-value="
-                (v: string[]) => setFieldValue('services', v)
-              "
+              :model-value="services.items.value"
+              @update:model-value="services.setItems"
               placeholder="Enter a service"
-              :errors="servicesErrors"
+              :errors="services.errors.value"
             />
           </div>
 
@@ -365,12 +346,10 @@ function triggerFileInput() {
               >Addresses</label
             >
             <DynamicFormset
-              :model-value="(values.addresses as string[]) || ['']"
-              @update:model-value="
-                (v: string[]) => setFieldValue('addresses', v)
-              "
+              :model-value="addresses.items.value"
+              @update:model-value="addresses.setItems"
               placeholder="Enter an address"
-              :errors="addressesErrors"
+              :errors="addresses.errors.value"
             />
           </div>
 
@@ -379,21 +358,15 @@ function triggerFileInput() {
               >Digital Contacts</label
             >
             <DigitalContactFormset
-              :model-value="
-                (values.digital_contacts as ContactMethod[]) || [
-                  { type: 'phone', value: '' },
-                ]
-              "
-              @update:model-value="
-                (v: ContactMethod[]) => setFieldValue('digital_contacts', v)
-              "
-              :errors="digitalContactsErrors"
+              :model-value="digitalContacts.items.value"
+              @update:model-value="digitalContacts.setItems"
+              :errors="digitalContacts.errors.value"
             />
           </div>
         </div>
 
         <DialogFooter class="border-border shrink-0 border-t pt-4">
-          <Button type="submit" class="w-full" :disabled="!formValid">
+          <Button type="submit" class="w-full" :disabled="!meta.valid">
             {{ isEditing ? "Update Contact" : "Save Contact" }}
           </Button>
         </DialogFooter>

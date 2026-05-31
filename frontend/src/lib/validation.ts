@@ -1,5 +1,4 @@
 import * as yup from "yup"
-import type { ContactMethod } from "@/types/contact"
 
 const DIGITAL_PATTERNS: Record<string, RegExp> = {
   phone: /^[\d\s+()-]+$/,
@@ -84,31 +83,3 @@ export const formSchema = yup.object({
 })
 
 export type FormValues = yup.InferType<typeof formSchema>
-
-function validateSync<T>(schema: yup.Schema<T>, value: T): string | undefined {
-  try {
-    schema.validateSync(value)
-    return undefined
-  } catch (err: unknown) {
-    if (err instanceof yup.ValidationError) return err.message
-    return undefined
-  }
-}
-
-export function getPositionErrors(values: string[]): (string | undefined)[] {
-  return values.map((v) => validateSync(positionItemSchema, v))
-}
-
-export function getServiceErrors(values: string[]): (string | undefined)[] {
-  return values.map((v) => validateSync(serviceItemSchema, v))
-}
-
-export function getAddressErrors(values: string[]): (string | undefined)[] {
-  return values.map((v) => validateSync(addressItemSchema, v))
-}
-
-export function getDigitalContactErrors(
-  values: ContactMethod[],
-): (string | undefined)[] {
-  return values.map((v) => validateSync(digitalContactItemSchema, v))
-}

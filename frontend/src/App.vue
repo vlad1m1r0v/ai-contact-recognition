@@ -1,15 +1,23 @@
 <script setup lang="ts">
 import { ref } from "vue"
 import { Plus } from "@lucide/vue"
+
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Spinner } from "@/components/ui/spinner"
+import { Toaster } from "@/components/ui/sonner"
 import SearchBar from "@/components/SearchBar.vue"
 import ContactCardGrid from "@/components/ContactCardGrid.vue"
 import AppPagination from "@/components/AppPagination.vue"
 import ContactDetailModal from "@/components/ContactDetailModal.vue"
 import ContactFormModal from "@/components/ContactFormModal.vue"
 import { useContacts } from "@/composables/useContacts"
+
 import { getContact } from "@/lib/api"
+
 import type { CardListItem, ContactCard, ContactMethod } from "@/types/contact"
+
+import 'vue-sonner/style.css'
 
 const {
   searchQuery,
@@ -19,6 +27,7 @@ const {
   totalPages,
   pageSize,
   isLoading,
+  isSaving,
   error,
   deleteCard,
   createCard,
@@ -29,14 +38,19 @@ const showDetailModal = ref(false)
 const showFormModal = ref(false)
 const selectedCard = ref<ContactCard | null>(null)
 const editingCard = ref<ContactCard | null>(null)
+const isDetailLoading = ref(false)
 
 async function openDetail(card: CardListItem) {
+  showDetailModal.value = true
+  isDetailLoading.value = true
+  selectedCard.value = null
   try {
     selectedCard.value = await getContact(card.id)
   } catch {
     selectedCard.value = null
+  } finally {
+    isDetailLoading.value = false
   }
-  showDetailModal.value = true
 }
 
 function openFormForAdd() {
@@ -93,8 +107,18 @@ async function handleSave(data: SavePayload) {
 
     <hr class="border-border" />
 
-    <div v-if="isLoading" class="text-muted-foreground py-12 text-center text-sm">
-      Loading contacts...
+    <div v-if="isLoading" class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div
+        v-for="n in 8"
+        :key="n"
+        class="bg-card flex cursor-pointer flex-col overflow-hidden rounded-md border shadow-xs"
+      >
+        <Skeleton class="aspect-[3/2] w-full rounded-none" />
+        <div class="flex items-center justify-between gap-1 p-3">
+          <Skeleton class="h-4 w-3/5" />
+          <Skeleton class="h-3 w-2/5" />
+        </div>
+      </div>
     </div>
     <div
       v-else-if="error"
@@ -120,9 +144,9 @@ async function handleSave(data: SavePayload) {
     />
 
     <ContactDetailModal
-      v-if="selectedCard"
       :open="showDetailModal"
       :card="selectedCard"
+      :loading="isDetailLoading"
       @update:open="showDetailModal = $event"
       @edit="openFormForEdit"
       @delete="handleDelete"
@@ -139,5 +163,13 @@ async function handleSave(data: SavePayload) {
       "
       @save="handleSave"
     />
+
+    <div
+      v-if="isSaving"
+      class="bg-background/80 fixed inset-0 z-50 flex items-center justify-center backdrop-blur-xs"
+    >
+      <Spinner class="text-primary size-8" />
+    </div>
   </div>
+  <Toaster rich-colors />
 </template>

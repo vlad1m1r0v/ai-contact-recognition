@@ -58,18 +58,24 @@ class CardRepository(ICardRepository):
         try:
             skip = (page - 1) * limit
 
-            # Build filter: case-insensitive substring search across display-name fields
-            if search:
-                escaped = re_module.escape(search)
-                regex_filter = {"$regex": escaped, "$options": "i"}
-                query_filter = {
-                    "$or": [
-                        {"company_name": regex_filter},
-                        {"first_name": regex_filter},
-                        {"last_name": regex_filter},
-                        {"middle_name": regex_filter},
-                    ]
-                }
+            # Build filter: each word in the query must match at least one field
+            if search and search.strip():
+                words = search.strip().split()
+                word_conditions = []
+                for word in words:
+                    escaped = re_module.escape(word)
+                    regex_filter = {"$regex": escaped, "$options": "i"}
+                    word_conditions.append(
+                        {
+                            "$or": [
+                                {"company_name": regex_filter},
+                                {"first_name": regex_filter},
+                                {"last_name": regex_filter},
+                                {"middle_name": regex_filter},
+                            ]
+                        }
+                    )
+                query_filter = {"$and": word_conditions} if word_conditions else {}
             else:
                 query_filter = {}
 

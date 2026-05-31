@@ -1,4 +1,4 @@
-import type { CardListItem, ContactCard, ContactMethod, PaginatedResponse } from "@/types/contact"
+import type { ContactCard, ContactMethod, PaginatedResponse } from "@/types/contact"
 
 const BASE: string =
   (import.meta as unknown as Record<string, Record<string, string>>).env
