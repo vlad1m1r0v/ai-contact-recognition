@@ -3,11 +3,13 @@ import base64
 from datetime import datetime
 from fastapi import APIRouter, Body, File, Query, UploadFile, status
 from dishka.integrations.fastapi import FromDishka, inject
+from pydantic import BaseModel
 
 from typing import Optional
 from src.core.schemas.contact import (
     ContactExtractionSchema,
     CreateContactRequest,
+    UpdateContactRequest,
     PaginatedResponse,
 )
 from src.core.exceptions.generator import generate_examples
@@ -99,6 +101,11 @@ async def create_contact_card(
     original image as a base64 data URI.
     """
     logger.executing("API request received: Create new contact card")
+
+    if not body.image_base64:
+        raise InvalidImageException(
+            "image_base64 is required when creating a contact card"
+        )
 
     match = re.match(r"data:(?P<mime>[^;]+);base64,(?P<data>.+)", body.image_base64)
     if not match:
@@ -233,35 +240,46 @@ async def delete_contact_card(
 async def update_contact_card(
     card_id: str,
     card_usecase_service: FromDishka[ICardUsecaseService],
-    body: CreateContactRequest = Body(
-        ..., description="Updated contact data with base64-encoded image"
+    body: UpdateContactRequest = Body(
+        ..., description="Partial contact data (only provided fields are updated)"
     ),
 ) -> ContactExtractionSchema:
     """
-    Update (replace) a contact card in the database by its MongoDB ID.
+    Update a contact card in the database. Only fields present in the request body are changed.
     """
     logger.executing(f"API request received: Update contact card with ID {card_id}")
 
-    match = re.match(r"data:(?P<mime>[^;]+);base64,(?P<data>.+)", body.image_base64)
-    if not match:
-        raise InvalidImageException(
-            "Invalid image data URI format. Expected: data:{mime};base64,{data}"
-        )
+    def serialize(v: object) -> object:
+        if isinstance(v, BaseModel):
+            return v.model_dump()
+        if isinstance(v, list):
+            return [serialize(i) for i in v]
+        return v
 
-    extraction = ContactExtractionSchema(
-        first_name=body.first_name,
-        last_name=body.last_name,
-        middle_name=body.middle_name,
-        company_name=body.company_name,
-        positions=body.positions,
-        services=body.services,
-        addresses=body.addresses,
-        digital_contacts=body.digital_contacts,
-        summary=body.summary,
-    )
+    update_data: dict[str, object] = {}
+    for field in body.model_fields_set:
+        if field == "image_base64":
+            continue
+        value = getattr(body, field)
+        if value is not None:
+            update_data[field] = serialize(value)
+
+    image_kwargs: dict[str, object] = {}
+    if body.image_base64 is not None:
+        match = re.match(r"data:(?P<mime>[^;]+);base64,(?P<data>.+)", body.image_base64)
+        if not match:
+            raise InvalidImageException(
+                "Invalid image data URI format. Expected: data:{mime};base64,{data}"
+            )
+
+        mime_type = match.group("mime")
+        image_bytes = base64.b64decode(match.group("data"))
+        ext = mime_type.split("/")[-1]
+        filename = f"card_{datetime.now().strftime('%Y%m%d%H%M%S')}.{ext}"
+        image_kwargs = {"image_bytes": image_bytes, "filename": filename}
 
     result = await card_usecase_service.update_card(
-        card_id=card_id, extraction=extraction
+        card_id=card_id, data=update_data, **image_kwargs
     )
 
     logger.finished(f"API request completed: Updated contact card with ID {card_id}")

@@ -99,6 +99,8 @@ const [middleName, middleNameProps] = defineField("middle_name")
 const [companyName, companyNameProps] = defineField("company_name")
 const [summary, summaryProps] = defineField("summary")
 
+const formValid = computed(() => formSchema.isValidSync(values))
+
 const positionsErrors = computed(() =>
   getPositionErrors((values.positions as string[]) || []),
 )
@@ -391,7 +393,7 @@ function triggerFileInput() {
         </div>
 
         <DialogFooter class="border-border shrink-0 border-t pt-4">
-          <Button type="submit" class="w-full" :disabled="!meta.valid">
+          <Button type="submit" class="w-full" :disabled="!formValid">
             {{ isEditing ? "Update Contact" : "Save Contact" }}
           </Button>
         </DialogFooter>

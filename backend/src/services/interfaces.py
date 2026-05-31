@@ -75,10 +75,10 @@ class ICardRepository(abc.ABC):
 
     @abc.abstractmethod
     async def update_card(
-        self, card_id: str, extraction: ContactExtractionSchema
+        self, card_id: str, data: dict
     ) -> Optional[ContactExtractionSchema]:
         """
-        Replace the entire card document in the database.
+        Partially update a card document with only the provided fields.
         Returns the updated schema, or None if not found.
         """
         pass
@@ -133,9 +133,14 @@ class ICardUsecaseService(abc.ABC):
 
     @abc.abstractmethod
     async def update_card(
-        self, card_id: str, extraction: ContactExtractionSchema
+        self,
+        card_id: str,
+        data: dict,
+        image_bytes: Optional[bytes] = None,
+        filename: Optional[str] = None,
     ) -> ContactExtractionSchema:
         """
-        Update (replace) a card by its ID with new data.
+        Partially update a card by its ID with only the provided fields.
+        If image_bytes and filename are provided, re-upload the image to Cloudinary.
         """
         pass

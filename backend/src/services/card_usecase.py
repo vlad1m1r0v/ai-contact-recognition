@@ -119,10 +119,21 @@ class CardUsecaseService(ICardUsecaseService):
         logger.finished(f"Card deletion orchestrated successfully for ID: {card_id}")
 
     async def update_card(
-        self, card_id: str, extraction: ContactExtractionSchema
+        self,
+        card_id: str,
+        data: dict,
+        image_bytes: Optional[bytes] = None,
+        filename: Optional[str] = None,
     ) -> ContactExtractionSchema:
         logger.executing(f"Orchestrating card update for ID: {card_id}")
-        updated = await self.repository.update_card(card_id, extraction)
+
+        if image_bytes is not None and filename is not None:
+            logger.executing("Uploading new image to Cloudinary for updated card")
+            image_url = await self.cloudinary.upload_image(image_bytes, filename)
+            data["image_url"] = image_url
+            logger.finished("New image uploaded to Cloudinary for updated card")
+
+        updated = await self.repository.update_card(card_id, data)
         if not updated:
             raise CardNotFoundException(
                 f"Contact card cannot be found for update: {card_id}"

@@ -157,13 +157,12 @@ class CardRepository(ICardRepository):
             raise DatabaseConnectionException(f"Failed to delete contact card: {e}")
 
     async def update_card(
-        self, card_id: str, extraction: ContactExtractionSchema
+        self, card_id: str, data: dict
     ) -> Optional[ContactExtractionSchema]:
         logger.executing(f"Updating card document with ID: {card_id}")
         try:
             oid = ObjectId(card_id)
-            data = extraction.model_dump(exclude={"id"})
-            result = await self.collection.replace_one({"_id": oid}, data)
+            result = await self.collection.update_one({"_id": oid}, {"$set": data})
             if result.matched_count == 0:
                 logger.finished(f"Card not found for update: {card_id}")
                 return None

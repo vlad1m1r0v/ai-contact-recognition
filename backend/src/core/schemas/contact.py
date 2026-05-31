@@ -77,8 +77,8 @@ class CardListElement(BaseModel):
 class CreateContactRequest(BaseModel):
     """Request schema for creating a new contact card with pre-extracted data."""
 
-    image_base64: str = Field(
-        ...,
+    image_base64: Optional[str] = Field(
+        default=None,
         description="Base64 data URI of the card image (e.g., data:image/png;base64,iVBOR...)",
     )
     first_name: Optional[str] = Field(
@@ -107,6 +107,47 @@ class CreateContactRequest(BaseModel):
     )
     digital_contacts: List[ContactMethod] = Field(
         default_factory=list,
+        description="Unified list of all digital contact methods",
+    )
+    summary: Optional[str] = Field(
+        default=None,
+        description="A 1-2 sentence brief description explaining who this person/company is and what they offer",
+    )
+
+
+class UpdateContactRequest(BaseModel):
+    """Request schema for updating an existing contact card (partial update)."""
+
+    image_base64: Optional[str] = Field(
+        default=None,
+        description="Base64 data URI of the card image (optional)",
+    )
+    first_name: Optional[str] = Field(
+        default=None, description="First name of the contact person, if available"
+    )
+    last_name: Optional[str] = Field(
+        default=None, description="Last name of the contact person, if available"
+    )
+    middle_name: Optional[str] = Field(
+        default=None, description="Middle name of the contact person, if available"
+    )
+    company_name: Optional[str] = Field(
+        default=None, description="Name of the company or organization, if available"
+    )
+    positions: Optional[List[str]] = Field(
+        default=None,
+        description="List of professional positions, job titles, or roles held by the person",
+    )
+    services: Optional[List[str]] = Field(
+        default=None,
+        description="List of strings describing core services, activities, specialties, or tags representing what they offer",
+    )
+    addresses: Optional[List[str]] = Field(
+        default=None,
+        description="Physical addresses, locations, or branches mentioned on the card/image",
+    )
+    digital_contacts: Optional[List[ContactMethod]] = Field(
+        default=None,
         description="Unified list of all digital contact methods",
     )
     summary: Optional[str] = Field(
