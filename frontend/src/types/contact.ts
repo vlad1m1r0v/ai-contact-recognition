@@ -3,10 +3,16 @@ export interface ContactMethod {
   value: string
 }
 
-export interface ContactCard {
+export interface CardListItem {
   id: string
   image_url: string
   display_name: string
+  created_at: string
+}
+
+export interface ContactCard {
+  id: string
+  image_url: string
   created_at: string
   first_name?: string
   last_name?: string
@@ -20,7 +26,7 @@ export interface ContactCard {
 }
 
 export interface PaginatedResponse {
-  items: ContactCard[]
+  items: CardListItem[]
   total: number
   page: number
   limit: number

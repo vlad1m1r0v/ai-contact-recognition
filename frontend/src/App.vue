@@ -9,7 +9,7 @@ import ContactDetailModal from "@/components/ContactDetailModal.vue"
 import ContactFormModal from "@/components/ContactFormModal.vue"
 import { useContacts } from "@/composables/useContacts"
 import { getContact } from "@/lib/api"
-import type { ContactCard, ContactMethod } from "@/types/contact"
+import type { CardListItem, ContactCard, ContactMethod } from "@/types/contact"
 
 const {
   searchQuery,
@@ -30,11 +30,11 @@ const showFormModal = ref(false)
 const selectedCard = ref<ContactCard | null>(null)
 const editingCard = ref<ContactCard | null>(null)
 
-async function openDetail(card: ContactCard) {
+async function openDetail(card: CardListItem) {
   try {
     selectedCard.value = await getContact(card.id)
   } catch {
-    selectedCard.value = card
+    selectedCard.value = null
   }
   showDetailModal.value = true
 }

@@ -5,14 +5,14 @@ import {
   updateContact as apiUpdateContact,
   deleteContact as apiDeleteContact,
 } from "@/lib/api"
-import type { ContactCard, ContactMethod } from "@/types/contact"
+import type { CardListItem, ContactCard, ContactMethod } from "@/types/contact"
 
 const PAGE_SIZE = 10
 
 export function useContacts() {
   const searchQuery = ref("")
   const currentPage = ref(1)
-  const contacts = ref<ContactCard[]>([])
+  const contacts = ref<CardListItem[]>([])
   const totalItems = ref(0)
   const isLoading = ref(false)
   const error = ref<string | null>(null)

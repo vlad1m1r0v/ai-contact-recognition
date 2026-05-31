@@ -1,40 +1,8 @@
-import type { ContactCard, ContactMethod, PaginatedResponse } from "@/types/contact"
+import type { CardListItem, ContactCard, ContactMethod, PaginatedResponse } from "@/types/contact"
 
 const BASE: string =
   (import.meta as unknown as Record<string, Record<string, string>>).env
     ?.VITE_API_BASE_URL ?? "http://127.0.0.1:9211"
-
-function computeDisplayName(card: {
-  first_name?: string | null
-  last_name?: string | null
-  middle_name?: string | null
-  company_name?: string | null
-}): string {
-  const name = [card.first_name, card.middle_name, card.last_name]
-    .filter(Boolean)
-    .join(" ")
-  return card.company_name || name || "Unnamed"
-}
-
-function mapCard(raw: Record<string, unknown>): ContactCard {
-  return {
-    id: raw.id as string,
-    image_url: (raw.image_url as string) ?? "",
-    display_name:
-      (raw.display_name as string) ??
-      computeDisplayName(raw as Parameters<typeof computeDisplayName>[0]),
-    created_at: (raw.created_at as string) ?? new Date().toISOString(),
-    first_name: raw.first_name as string | undefined,
-    last_name: raw.last_name as string | undefined,
-    middle_name: raw.middle_name as string | undefined,
-    company_name: raw.company_name as string | undefined,
-    positions: (raw.positions as string[]) ?? [],
-    services: (raw.services as string[]) ?? [],
-    addresses: (raw.addresses as string[]) ?? [],
-    digital_contacts: (raw.digital_contacts as ContactMethod[]) ?? [],
-    summary: raw.summary as string | undefined,
-  }
-}
 
 async function checkResponse(res: Response): Promise<void> {
   if (res.ok) return
@@ -58,15 +26,13 @@ export async function getContacts(
 
   const res = await fetch(`${BASE}/contacts?${params}`)
   await checkResponse(res)
-  const data: PaginatedResponse = await res.json()
-  return { ...data, items: data.items.map(mapCard) }
+  return res.json()
 }
 
 export async function getContact(id: string): Promise<ContactCard> {
   const res = await fetch(`${BASE}/contacts/${id}`)
   await checkResponse(res)
-  const data: Record<string, unknown> = await res.json()
-  return mapCard(data)
+  return res.json()
 }
 
 export async function extractContact(file: File): Promise<ContactCard> {
@@ -78,8 +44,7 @@ export async function extractContact(file: File): Promise<ContactCard> {
     body: fd,
   })
   await checkResponse(res)
-  const data: Record<string, unknown> = await res.json()
-  return mapCard(data)
+  return res.json()
 }
 
 export async function createContact(data: {
@@ -100,8 +65,7 @@ export async function createContact(data: {
     body: JSON.stringify(data),
   })
   await checkResponse(res)
-  const raw: Record<string, unknown> = await res.json()
-  return mapCard(raw)
+  return res.json()
 }
 
 export async function updateContact(
@@ -125,8 +89,7 @@ export async function updateContact(
     body: JSON.stringify(data),
   })
   await checkResponse(res)
-  const raw: Record<string, unknown> = await res.json()
-  return mapCard(raw)
+  return res.json()
 }
 
 export async function deleteContact(id: string): Promise<void> {

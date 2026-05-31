@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import type { ContactCard } from "@/types/contact"
+import type { CardListItem } from "@/types/contact"
 
-const props = defineProps<{
-  card: ContactCard
+defineProps<{
+  card: CardListItem
 }>()
 
 const emit = defineEmits<{
-  (e: "click", card: ContactCard): void
+  (e: "click", card: CardListItem): void
 }>()
 
 function formatTime(iso: string): string {

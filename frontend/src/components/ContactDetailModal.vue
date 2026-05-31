@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { Button } from "@/components/ui/button"
+import {computed} from "vue"
+import {Button} from "@/components/ui/button"
 import {
   Dialog,
   DialogClose,
@@ -8,9 +9,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import DialogScrollContent from "@/components/ui/dialog/DialogScrollContent.vue"
-import type { ContactCard } from "@/types/contact"
+import type {ContactCard} from "@/types/contact"
 
-defineProps<{
+const props = defineProps<{
   card: ContactCard
   open: boolean
 }>()
@@ -20,6 +21,11 @@ const emit = defineEmits<{
   (e: "edit", card: ContactCard): void
   (e: "delete", id: string): void
 }>()
+
+const displayName = computed(() => {
+  const parts = [props.card.first_name, props.card.middle_name, props.card.last_name].filter(Boolean)
+  return props.card.company_name || parts.join(" ") || "Unnamed"
+})
 
 function formatTime(iso: string): string {
   const d = new Date(iso)
@@ -36,15 +42,15 @@ function formatTime(iso: string): string {
   <Dialog :open="open" @update:open="emit('update:open', $event)">
     <DialogScrollContent class="sm:max-w-xl gap-4">
       <DialogHeader class="shrink-0">
-        <DialogTitle>{{ card.display_name }}</DialogTitle>
+        <DialogTitle>{{ displayName }}</DialogTitle>
       </DialogHeader>
 
       <div class="flex min-h-0 flex-1 flex-col gap-3">
         <div class="aspect-[3/2] w-full shrink-0 overflow-hidden rounded-lg">
           <img
-            :src="card.image_url"
-            :alt="card.display_name"
-            class="h-full w-full object-cover"
+              :src="card.image_url"
+              :alt="displayName"
+              class="h-full w-full object-cover"
           />
         </div>
 
@@ -103,17 +109,17 @@ function formatTime(iso: string): string {
 
       <DialogFooter class="shrink-0">
         <div class="grid w-full grid-cols-1 gap-2 sm:grid-cols-3">
-          <Button
-            variant="destructive"
-            @click="emit('delete', card.id)"
-          >
-            Delete Contact
-          </Button>
           <DialogClose as-child>
             <Button variant="outline">Close</Button>
           </DialogClose>
           <Button @click="emit('edit', card)">
             Edit Contact
+          </Button>
+          <Button
+              variant="destructive"
+              @click="emit('delete', card.id)"
+          >
+            Delete Contact
           </Button>
         </div>
       </DialogFooter>

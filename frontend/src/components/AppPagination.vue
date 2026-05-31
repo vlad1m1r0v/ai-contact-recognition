@@ -53,7 +53,7 @@ function range(): (number | "ellipsis")[] {
 
       <template v-for="p in range()" :key="typeof p === 'number' ? p : 'e' + Math.random()">
         <PaginationEllipsis v-if="p === 'ellipsis'" />
-        <PaginationItem v-else :is-active="p === page" @click="goTo(p)">
+        <PaginationItem v-else :value="p" :is-active="p === page" @click="goTo(p)">
           {{ p }}
         </PaginationItem>
       </template>

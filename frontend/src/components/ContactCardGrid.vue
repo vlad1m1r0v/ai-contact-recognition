@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import type { ContactCard } from "@/types/contact"
+import type { CardListItem } from "@/types/contact"
 import ContactCardItem from "./ContactCardItem.vue"
 
 defineProps<{
-  cards: ContactCard[]
+  cards: CardListItem[]
 }>()
 
 const emit = defineEmits<{
-  (e: "card-click", card: ContactCard): void
+  (e: "card-click", card: CardListItem): void
 }>()
 </script>
 
