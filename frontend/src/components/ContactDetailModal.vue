@@ -54,9 +54,11 @@ function formatTime(iso: string): string {
             <span>{{ card.company_name }}</span>
           </div>
 
-          <div v-if="card.position" class="flex flex-col">
-            <span class="text-muted-foreground text-xs font-medium uppercase">Position</span>
-            <span>{{ card.position }}</span>
+          <div v-if="card.positions?.length" class="flex flex-col">
+            <span class="text-muted-foreground text-xs font-medium uppercase">Positions</span>
+            <ul class="list-inside list-disc">
+              <li v-for="p in card.positions" :key="p">{{ p }}</li>
+            </ul>
           </div>
 
           <div v-if="card.first_name || card.last_name" class="flex flex-col">

@@ -8,17 +8,21 @@ import AppPagination from "@/components/AppPagination.vue"
 import ContactDetailModal from "@/components/ContactDetailModal.vue"
 import ContactFormModal from "@/components/ContactFormModal.vue"
 import { useContacts } from "@/composables/useContacts"
+import { getContact } from "@/lib/api"
 import type { ContactCard, ContactMethod } from "@/types/contact"
 
 const {
   searchQuery,
   currentPage,
-  paginatedContacts,
-  totalFiltered,
+  contacts,
+  totalItems,
   totalPages,
   pageSize,
+  isLoading,
+  error,
   deleteCard,
   createCard,
+  updateCard,
 } = useContacts()
 
 const showDetailModal = ref(false)
@@ -26,8 +30,12 @@ const showFormModal = ref(false)
 const selectedCard = ref<ContactCard | null>(null)
 const editingCard = ref<ContactCard | null>(null)
 
-function openDetail(card: ContactCard) {
-  selectedCard.value = card
+async function openDetail(card: ContactCard) {
+  try {
+    selectedCard.value = await getContact(card.id)
+  } catch {
+    selectedCard.value = card
+  }
   showDetailModal.value = true
 }
 
@@ -48,20 +56,28 @@ async function handleDelete(id: string) {
   selectedCard.value = null
 }
 
-async function handleSave(data: {
-  display_name: string
-  image_url: string
+interface SavePayload {
+  image_base64: string
   first_name?: string
   last_name?: string
   middle_name?: string
   company_name?: string
-  position?: string
+  positions: string[]
   services: string[]
   addresses: string[]
   digital_contacts: ContactMethod[]
   summary?: string
-}) {
-  await createCard(data)
+}
+
+async function handleSave(data: SavePayload) {
+  if (editingCard.value) {
+    const { image_base64, ...rest } = data
+    const payload = image_base64 ? data : rest
+    await updateCard(editingCard.value.id, payload)
+    editingCard.value = null
+  } else {
+    await createCard(data)
+  }
 }
 </script>
 
@@ -77,9 +93,18 @@ async function handleSave(data: {
 
     <hr class="border-border" />
 
+    <div v-if="isLoading" class="text-muted-foreground py-12 text-center text-sm">
+      Loading contacts...
+    </div>
+    <div
+      v-else-if="error"
+      class="text-destructive py-12 text-center text-sm"
+    >
+      {{ error }}
+    </div>
     <ContactCardGrid
-      v-if="paginatedContacts.length"
-      :cards="paginatedContacts"
+      v-else-if="contacts.length"
+      :cards="contacts"
       @card-click="openDetail"
     />
     <div v-else class="text-muted-foreground py-12 text-center text-sm">
@@ -88,7 +113,7 @@ async function handleSave(data: {
 
     <AppPagination
       v-if="totalPages > 1"
-      :total="totalFiltered"
+      :total="totalItems"
       :page="currentPage"
       :page-size="pageSize"
       @update:page="currentPage = $event"
@@ -106,7 +131,12 @@ async function handleSave(data: {
     <ContactFormModal
       :open="showFormModal"
       :card="editingCard"
-      @update:open="showFormModal = $event"
+      @update:open="
+        (v) => {
+          showFormModal = v
+          if (!v) editingCard = null
+        }
+      "
       @save="handleSave"
     />
   </div>
