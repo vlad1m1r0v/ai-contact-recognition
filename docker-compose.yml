@@ -36,13 +36,11 @@ services:
     build:
       context: ./frontend
       args:
-        VITE_API_BASE_URL: ""
+        VITE_API_BASE_URL: http://83.229.86.141:9211
     container_name: contact_recognition_frontend
     restart: always
     ports:
       - "9210:80"
-    depends_on:
-      - backend
 
 volumes:
   mongodb_data:
